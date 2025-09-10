@@ -14,7 +14,8 @@ jobs:
       - name: Install OCI CLI (non-interactive)
         run: |
           bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
-          echo 'export PATH=$PATH:$HOME/bin' >> $GITHUB_ENV
+          echo "export PATH=$PATH:$HOME/bin" >> $GITHUB_ENV
+          export PATH=$PATH:$HOME/bin   # make it available in this step
 
       - name: Configure OCI CLI
         run: |
@@ -27,9 +28,11 @@ jobs:
           echo "region=${{ secrets.OCI_REGION }}" >> $HOME/.oci/config
           echo "${{ secrets.OCI_PRIVATE_KEY }}" | base64 --decode > $HOME/.oci/oci_api_key.pem
           chmod 600 $HOME/.oci/oci_api_key.pem
+          export PATH=$PATH:$HOME/bin   # ensure oci command is available
 
       - name: Create Ubuntu VM
         run: |
+          export PATH=$PATH:$HOME/bin   # ensure oci command is available
           echo "Launching Ubuntu VM..."
           INSTANCE_OCID=$(oci compute instance launch \
             --compartment-id ${{ secrets.OCI_TENANCY_OCID }} \
