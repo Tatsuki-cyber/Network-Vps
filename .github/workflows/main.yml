@@ -53,3 +53,7 @@ jobs:
           PUBLIC_IP=$(oci compute instance list-vnics --instance-id $INSTANCE_OCID \
             --query 'data[0]."public-ip"' --raw-output)
           echo "✅ Your Ubuntu VPS Public IP: $PUBLIC_IP"
+
+          # Delete API key from runner for security
+          rm -f $HOME/.oci/oci_api_key.pem
+          echo "OCI API key removed from runner."
