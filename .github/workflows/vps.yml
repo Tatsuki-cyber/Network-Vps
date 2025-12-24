@@ -1,46 +1,33 @@
-name: Tailscale High-Speed Exit Node
+name: Tailscale VPS (Router Access Enabled)
 on:
-  workflow_dispatch: # Allows manual start from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  tailscale-vps:
+  exit-node:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Force Enable IP Forwarding
+      - name: Enable IP Forwarding
         run: |
-          # Enable IPv4 and IPv6 forwarding for Exit Node capability
           sudo sysctl -w net.ipv4.ip_forward=1
           sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
-          echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
           sudo sysctl -p
 
-      - name: Tailscale Connection
+      - name: Connect Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          args: --advertise-exit-node --ssh
+          # This flag tells the tunnel to allow local LAN traffic (192.168.0.x)
+          args: --advertise-exit-node --ssh --exit-node-allow-lan-access
 
-      - name: Network & Speed Optimization
+      - name: Speed & Router Check
         run: |
-          # Optimize UDP buffer and offloading for high-speed throughput
+          # Optimize for Mbps bypass
           sudo ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off
+          echo "VPS IP: $(tailscale ip -4)"
+          echo "Bypass active. You can now access 192.168.0.1 locally."
           
-          echo "--- NETWORK INFO ---"
-          tailscale status
-          echo "--- VPS IP ADDRESS ---"
-          tailscale ip -4
-          
-      - name: Run Speed Test (Internal)
-        run: |
-          # Quick speed test to see the GitHub backbone performance
-          curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -
-
-      - name: Keep Alive (6 Hours)
-        run: |
-          echo "VPS is now active. Use this as your Exit Node in the Tailscale App."
-          # This keeps the runner active for the maximum allowed time
-          sleep 21600
+      - name: Keep Alive
+        run: sleep 21600
