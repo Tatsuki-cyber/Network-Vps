@@ -1,23 +1,46 @@
-name: Tailscale Exit Node VPS
-on: 
-  workflow_dispatch:
+name: Tailscale High-Speed Exit Node
+on:
+  workflow_dispatch: # Allows manual start from the Actions tab
 
 jobs:
-  exit-node:
+  tailscale-vps:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Connect & Advertise Exit Node
+      - name: Force Enable IP Forwarding
+        run: |
+          # Enable IPv4 and IPv6 forwarding for Exit Node capability
+          sudo sysctl -w net.ipv4.ip_forward=1
+          sudo sysctl -w net.ipv6.conf.all.forwarding=1
+          echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+          echo "net.ipv6.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
+
+      - name: Tailscale Connection
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          args: --advertise-exit-node # This is the critical line
+          args: --advertise-exit-node --ssh
 
-      - name: Network Optimization
+      - name: Network & Speed Optimization
         run: |
-          # Optimize for max throughput
+          # Optimize UDP buffer and offloading for high-speed throughput
           sudo ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off
-          echo "Exit Node is running. Check your Tailscale app on Windows."
-          sleep 21600 # 6 hours of uptime
+          
+          echo "--- NETWORK INFO ---"
+          tailscale status
+          echo "--- VPS IP ADDRESS ---"
+          tailscale ip -4
+          
+      - name: Run Speed Test (Internal)
+        run: |
+          # Quick speed test to see the GitHub backbone performance
+          curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3 -
+
+      - name: Keep Alive (6 Hours)
+        run: |
+          echo "VPS is now active. Use this as your Exit Node in the Tailscale App."
+          # This keeps the runner active for the maximum allowed time
+          sleep 21600
