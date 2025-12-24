@@ -1,23 +1,23 @@
-name: Tailscale AuthKey VPS
+name: Tailscale Exit Node VPS
 on: 
   workflow_dispatch:
 
 jobs:
-  vps:
+  exit-node:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Connect to Tailscale
+      - name: Connect & Advertise Exit Node
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --advertise-exit-node # This is the critical line
 
-      - name: VPS Active
+      - name: Network Optimization
         run: |
-          echo "Connected! Tailscale IP:"
-          tailscale ip -4
-          # Optimize network for maximum speed
+          # Optimize for max throughput
           sudo ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off
-          sleep 21600 # Keeps it alive for 6 hours
+          echo "Exit Node is running. Check your Tailscale app on Windows."
+          sleep 21600 # 6 hours of uptime
