@@ -1,25 +1,23 @@
-name: Tailscale VPS
+name: Tailscale AuthKey VPS
 on: 
-  workflow_dispatch: # Allows you to start it manually
+  workflow_dispatch:
 
 jobs:
-  tailscale-node:
+  vps:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Keep Alive & Info
+      - name: VPS Active
         run: |
-          echo "Your Tailscale IP is:"
+          echo "Connected! Tailscale IP:"
           tailscale ip -4
-          echo "Use 'tailscale ssh' or your preferred tool to connect."
-          # This keeps the 'VPS' running for 6 hours (GitHub Action limit)
-          sleep 21600
+          # Optimize network for maximum speed
+          sudo ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off
+          sleep 21600 # Keeps it alive for 6 hours
