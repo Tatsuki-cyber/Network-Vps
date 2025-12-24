@@ -1,33 +1,36 @@
-name: Tailscale VPS (Router Access Enabled)
-on:
+name: Tailscale High-Speed Bypass
+on: 
   workflow_dispatch:
 
 jobs:
-  exit-node:
+  vps-bypass:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Enable IP Forwarding
+      - name: Force Clean Network State
         run: |
+          # Removes any old identities that cause "Invalid Key" errors
+          sudo rm -rf /var/lib/tailscale/tailscaled.state
+          
+          # Enable IP Forwarding for the Exit Node
           sudo sysctl -w net.ipv4.ip_forward=1
           sudo sysctl -w net.ipv6.conf.all.forwarding=1
           sudo sysctl -p
 
-      - name: Connect Tailscale
+      - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-          # This flag tells the tunnel to allow local LAN traffic (192.168.0.x)
+          # Advertise as Exit Node and allow LAN for your 192.168.0.1 router
           args: --advertise-exit-node --ssh --exit-node-allow-lan-access
 
-      - name: Speed & Router Check
+      - name: Speed & Router Access Info
         run: |
-          # Optimize for Mbps bypass
           sudo ethtool -K eth0 rx-udp-gro-forwarding on rx-gro-list off
-          echo "VPS IP: $(tailscale ip -4)"
-          echo "Bypass active. You can now access 192.168.0.1 locally."
+          echo "Bypass is ACTIVE."
+          echo "1. Go to Tailscale Admin -> Machines -> Edit Route Settings -> Check 'Exit Node'."
+          echo "2. On Windows Tailscale -> Exit Node -> Select this runner."
+          echo "3. On Windows Tailscale -> Exit Node -> Check 'Allow LAN Access' for your router."
+          tailscale ip -4
           
-      - name: Keep Alive
+      - name: Keep Alive (6 Hours)
         run: sleep 21600
